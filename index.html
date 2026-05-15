@@ -9,104 +9,84 @@
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Parisienne&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
-    
     <style>
-        body { font-family: 'Noto Sans JP', sans-serif; }
+        [v-cloak] { display: none; }
+        body { font-family: 'Noto Sans JP', sans-serif; background-color: #F8F6FA; }
         .font-logo { font-family: 'Parisienne', cursive; }
         .bg-main { background-color: #645CAA; }
         .bg-sub { background-color: #A084CA; }
-        .bg-light { background-color: #BFACE0; }
         .bg-accent { background-color: #EBC7E8; }
         .text-main { color: #645CAA; }
         .aspect-square { aspect-ratio: 1 / 1; }
-
-        /* 【追加】読み込みが終わるまで {{ }} を隠す設定 */
-        [v-cloak] { display: none; }
     </style>
 </head>
-<body class="bg-[#F8F6FA] text-gray-700 pb-20">
+<body class="text-gray-700 pb-20">
 
     <div id="app" v-cloak class="max-w-md mx-auto min-h-screen bg-white shadow-xl relative">
-        
         <header class="bg-main text-white p-4 sticky top-0 z-30 shadow-md flex justify-between items-center">
             <h1 class="text-3xl font-logo px-2">Temperita</h1>
-            <button @click="showInput = !showInput" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-[10px] transition">
+            <button @click="showInput = !showInput" class="bg-white text-main px-4 py-2 rounded-full text-xs font-bold shadow-lg">
                 {{ showInput ? '閉じる' : '新規記録 ＋' }}
             </button>
         </header>
 
         <main>
-            <div class="p-4 border-b border-gray-100 bg-white">
-                <div class="flex items-center gap-3 bg-[#F8F6FA] p-3 rounded-2xl">
-                    <span class="text-lg">🔍</span>
-                    <input type="number" step="0.1" v-model="filterTemp" placeholder="最高気温で検索 (例: 26.5)" 
-                        class="bg-transparent border-none outline-none w-full text-sm font-bold">
-                    <button v-if="filterTemp" @click="filterTemp = null" class="text-gray-400 text-xs">Clear</button>
-                </div>
-                <p v-show="filterTemp" class="text-[10px] text-[#A084CA] mt-2 px-1 font-bold">
-                    ✨ {{ (filterTemp - 0.5).toFixed(1) }}℃ 〜 {{ (filterTemp + 0.5).toFixed(1) }}℃ の記録を表示中
-                </p>
+            <div class="p-4 border-b border-gray-100 bg-white text-center">
+                <input type="number" step="0.1" v-model="filterTemp" placeholder="最高気温で検索 (例: 26.5)" 
+                    class="bg-[#F8F6FA] p-3 rounded-2xl outline-none w-full text-sm font-bold text-center">
             </div>
 
             <div v-if="showInput" class="p-5 bg-white border-b-2 border-accent/30 space-y-4">
                 <div class="relative border-2 border-dashed border-[#BFACE0] rounded-2xl p-2 bg-[#F8F6FA] text-center">
                     <input type="file" accept="image/*" @change="onFileChange" class="absolute inset-0 opacity-0 cursor-pointer">
                     <div v-if="!previewUrl" class="py-10 text-[#A084CA] text-xs font-bold">写真をアップロード</div>
-                    <img v-if="previewUrl" :src="previewUrl" class="max-h-64 mx-auto rounded-xl shadow-sm">
+                    <img v-if="previewUrl" :src="previewUrl" class="max-h-64 mx-auto rounded-xl">
+                    <p v-if="isCompressing" class="text-[10px] text-main mt-2 font-bold animate-pulse">画像圧縮中...</p>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
-                    <input type="date" v-model="targetDate" class="p-3 bg-[#F8F6FA] border-none rounded-xl text-xs shadow-inner">
-                    <select v-model="selectedCity" class="p-3 bg-[#F8F6FA] border-none rounded-xl text-xs shadow-inner">
+                    <input type="date" v-model="targetDate" class="p-3 bg-[#F8F6FA] rounded-xl text-xs">
+                    <select v-model="selectedCity" class="p-3 bg-[#F8F6FA] rounded-xl text-xs h-[42px]">
                         <option v-for="city in cityList" :key="city.name" :value="city">{{ city.name }}</option>
                     </select>
                 </div>
 
-                <button @click="fetchWeather" :disabled="loading" 
-                    class="w-full bg-sub text-white py-3 rounded-xl font-bold shadow-md disabled:bg-gray-300 transition">
+                <button @click="fetchWeather" :disabled="loading || !targetDate" class="w-full bg-sub text-white py-3 rounded-xl font-bold shadow-md disabled:bg-gray-300">
                     {{ loading ? '取得中...' : '気温を取得' }}
                 </button>
 
                 <div v-if="weatherResult" class="space-y-4">
                     <div class="flex justify-around p-3 bg-white rounded-xl border border-accent">
-                        <div class="text-center"><p class="text-[8px] text-gray-400 uppercase">Max</p><p class="text-xl font-bold text-red-400">{{ weatherResult.max }}℃</p></div>
-                        <div class="text-center"><p class="text-[8px] text-gray-400 uppercase">Min</p><p class="text-xl font-bold text-blue-400">{{ weatherResult.min }}℃</p></div>
+                        <div class="text-center font-bold"><p class="text-[8px] text-gray-400">MAX</p><p class="text-red-400">{{ weatherResult.max }}℃</p></div>
+                        <div class="text-center font-bold"><p class="text-[8px] text-gray-400">MIN</p><p class="text-blue-400">{{ weatherResult.min }}℃</p></div>
                     </div>
-                    <textarea v-model="memo" placeholder="メモ..." class="w-full p-3 bg-[#F8F6FA] border-none rounded-xl text-sm h-20 shadow-inner outline-none"></textarea>
+                    <textarea v-model="memo" placeholder="メモ..." class="w-full p-3 bg-[#F8F6FA] rounded-xl text-sm h-20 outline-none shadow-inner"></textarea>
                     <button @click="saveEntry" class="w-full bg-main text-white py-4 rounded-xl font-bold shadow-lg">保存する</button>
                 </div>
             </div>
 
             <div class="grid grid-cols-3 gap-0.5 mt-0.5">
-                <div v-for="entry in filteredHistory" :key="entry.id" 
-                    @click="viewDetail(entry)" class="relative aspect-square group overflow-hidden bg-gray-100">
+                <div v-for="entry in filteredHistory" :key="entry.id" @click="viewDetail(entry)" class="relative aspect-square bg-gray-100 overflow-hidden">
                     <img :src="entry.imageData" class="w-full h-full object-cover">
                     <div class="absolute bottom-1 right-1 bg-black/40 text-white text-[8px] px-1.5 py-0.5 rounded backdrop-blur-sm font-bold">
                         {{ entry.maxTemp }}℃
                     </div>
                 </div>
             </div>
-
-            <div v-if="filteredHistory.length === 0" class="text-center py-20 text-gray-400 text-sm">
-                No matching outfits 👗
-            </div>
         </main>
 
         <div v-if="selectedEntry" class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" @click="selectedEntry = null">
-            <div class="bg-white rounded-[2rem] w-full max-w-sm overflow-hidden animate-in zoom-in duration-200" @click.stop>
+            <div class="bg-white rounded-[2rem] w-full max-w-sm overflow-hidden" @click.stop>
                 <img :src="selectedEntry.imageData" class="w-full h-auto">
-                <div class="p-6 space-y-3">
-                    <div class="flex justify-between items-center">
-                        <p class="text-xs font-bold text-main">{{ selectedEntry.date.replace(/-/g, '/') }} @{{ selectedEntry.city }}</p>
-                        <div class="text-right">
-                            <span class="text-red-400 font-bold mr-2">{{ selectedEntry.maxTemp }}℃</span>
-                            <span class="text-blue-400 font-bold">{{ selectedEntry.minTemp }}℃</span>
-                        </div>
+                <div class="p-6 space-y-4">
+                    <div class="flex justify-between items-center text-xs font-bold text-main">
+                        <p>{{ selectedEntry.date }} @{{ selectedEntry.city }}</p>
+                        <p class="text-red-400">{{ selectedEntry.maxTemp }}℃ / <span class="text-blue-400">{{ selectedEntry.minTemp }}℃</span></p>
                     </div>
                     <p class="text-sm text-gray-600 leading-relaxed">{{ selectedEntry.memo }}</p>
-                    <div class="flex justify-between items-center pt-4">
-                        <button @click="deleteEntry(selectedEntry.id)" class="text-[10px] text-gray-300 hover:text-red-500 transition">削除する</button>
-                        <button @click="selectedEntry = null" class="bg-main text-white px-6 py-2 rounded-xl font-bold">閉じる</button>
+                    <div class="flex justify-between items-center pt-2">
+                        <button @click="deleteEntry(selectedEntry.id)" class="text-[10px] text-gray-300">削除</button>
+                        <button @click="selectedEntry = null" class="bg-main text-white px-8 py-2 rounded-xl font-bold">閉じる</button>
                     </div>
                 </div>
             </div>
@@ -121,23 +101,22 @@
         createApp({
             data() {
                 return {
-                    showInput: false, loading: false, targetDate: '', selectedCity: { name: '東京', lat: 35.689, lon: 139.692 },
+                    showInput: false, loading: false, isCompressing: false,
+                    targetDate: '', selectedCity: { name: '東京', lat: 35.689, lon: 139.692 },
                     weatherResult: null, previewUrl: null, memo: '', imageData: null, history: [], filterTemp: null,
                     selectedEntry: null,
                     cityList: [
                         { name: '札幌', lat: 43.064, lon: 141.346 }, { name: '日高', lat: 42.337, lon: 142.368 },
                         { name: '仙台', lat: 38.268, lon: 140.869 }, { name: '東京', lat: 35.689, lon: 139.692 }, 
-                        { name: '横浜', lat: 35.444, lon: 139.638 }, { name: '名古屋', lat: 35.181, lon: 136.906 },
-                        { name: '大阪', lat: 34.693, lon: 135.502 }, { name: '奈良', lat: 34.685, lon: 135.832 },
-                        { name: '広島', lat: 34.385, lon: 132.453 }, { name: '福岡', lat: 33.590, lon: 130.401 }, 
-                        { name: '那覇', lat: 26.212, lon: 127.681 }
+                        { name: '横浜', lat: 35.444, lon: 139.638 }, { name: '大阪', lat: 34.693, lon: 135.502 }, 
+                        { name: '奈良', lat: 34.685, lon: 135.832 }, { name: '那覇', lat: 26.212, lon: 127.681 }
                     ]
                 }
             },
             computed: {
                 filteredHistory() {
                     if (!this.filterTemp) return this.history;
-                    return this.history.filter(entry => Math.abs(entry.maxTemp - this.filterTemp) <= 0.5);
+                    return this.history.filter(e => Math.abs(e.maxTemp - Number(this.filterTemp)) <= 0.5);
                 }
             },
             async mounted() { this.loadHistory(); },
@@ -145,15 +124,44 @@
                 onFileChange(e) {
                     const file = e.target.files[0];
                     if (!file) return;
-                    this.previewUrl = URL.createObjectURL(file);
-                    const reader = new FileReader();
-                    reader.onload = (event) => { this.imageData = event.target.result; };
-                    reader.readAsDataURL(file);
+                    this.isCompressing = true;
+
+                    // 1. 日付取得 (Exif)
                     const self = this;
                     EXIF.getData(file, function() {
                         const dateTag = EXIF.getTag(this, "DateTimeOriginal");
                         if (dateTag) self.targetDate = dateTag.split(' ')[0].replace(/:/g, '-');
                     });
+
+                    // 2. 画像リサイズ & 圧縮
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+                            const maxSide = 1600;
+
+                            if (width > height) {
+                                if (width > maxSide) { height *= maxSide / width; width = maxSide; }
+                            } else {
+                                if (height > maxSide) { width *= maxSide / height; height = maxSide; }
+                            }
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            // JPEG品質 0.6 (中品質) で圧縮
+                            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                            this.imageData = compressedBase64;
+                            this.previewUrl = compressedBase64;
+                            this.isCompressing = false;
+                        };
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
                 },
                 async fetchWeather() {
                     if (!this.targetDate) return;
@@ -175,13 +183,9 @@
                     this.previewUrl = null; this.weatherResult = null; this.memo = ''; this.imageData = null; this.showInput = false;
                     this.loadHistory();
                 },
-                async loadHistory() {
-                    this.history = await db.entries.orderBy('date').reverse().toArray();
-                },
+                async loadHistory() { this.history = await db.entries.orderBy('date').reverse().toArray(); },
                 viewDetail(entry) { this.selectedEntry = entry; },
-                async deleteEntry(id) {
-                    if (confirm('消去しますか？')) { await db.entries.delete(id); this.selectedEntry = null; this.loadHistory(); }
-                }
+                async deleteEntry(id) { if (confirm('消去？')) { await db.entries.delete(id); this.selectedEntry = null; this.loadHistory(); } }
             }
         }).mount('#app')
     </script>
