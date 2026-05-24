@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Temperita</title>
+    <title>気温でコーデ検索 -Temperita-</title>
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/180x180/645CAA/ffffff?text=T">
+    <meta name="apple-mobile-web-app-title" content="Temperita">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
@@ -46,8 +48,8 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <input type="date" v-model="targetDate" class="p-3 bg-[#F8F6FA] rounded-xl text-xs">
-                    <select v-model="selectedCity" class="p-3 bg-[#F8F6FA] rounded-xl text-xs h-[42px]">
-                        <option v-for="city in cityList" :key="city.name" :value="city">{{ city.name }}</option>
+                    <select v-model="selectedCityName" class="p-3 bg-[#F8F6FA] rounded-xl text-xs h-[42px]">
+                        <option v-for="city in cityList" :key="city.name" :value="city.name">{{ city.name }}</option>
                     </select>
                 </div>
 
@@ -102,14 +104,18 @@
             data() {
                 return {
                     showInput: false, loading: false, isCompressing: false,
-                    targetDate: '', selectedCity: { name: '東京', lat: 35.689, lon: 139.692 },
+                    targetDate: '', selectedCityName: '東京', // 都市名で管理してエラーを徹底防止
                     weatherResult: null, previewUrl: null, memo: '', imageData: null, history: [], filterTemp: null,
-                    selectedEntry: null,
+                    selectedEntry: null, isAutoDate: false,
                     cityList: [
                         { name: '札幌', lat: 43.064, lon: 141.346 }, { name: '日高', lat: 42.337, lon: 142.368 },
-                        { name: '仙台', lat: 38.268, lon: 140.869 }, { name: '東京', lat: 35.689, lon: 139.692 }, 
-                        { name: '横浜', lat: 35.444, lon: 139.638 }, { name: '大阪', lat: 34.693, lon: 135.502 }, 
-                        { name: '奈良', lat: 34.685, lon: 135.832 }, { name: '那覇', lat: 26.212, lon: 127.681 }
+                        { name: '仙台', lat: 38.268, lon: 140.869 }, { name: '千葉', lat: 35.607, lon: 140.106 },
+                        { name: '埼玉', lat: 35.857, lon: 139.649 }, { name: '東京', lat: 35.689, lon: 139.692 }, 
+                        { name: '横浜', lat: 35.444, lon: 139.638 }, { name: '静岡', lat: 34.975, lon: 138.383 }, 
+                        { name: '名古屋', lat: 35.181, lon: 136.906 },
+                        { name: '京都', lat: 35.011, lon: 135.768 }, { name: '大阪', lat: 34.693, lon: 135.502 }, 
+                        { name: '奈良', lat: 34.685, lon: 135.832 }, { name: '広島', lat: 34.385, lon: 132.453 }, 
+                        { name: '福岡', lat: 33.590, lon: 130.401 }, { name: '那覇', lat: 26.212, lon: 127.681 }
                     ]
                 }
             },
@@ -125,15 +131,8 @@
                     const file = e.target.files[0];
                     if (!file) return;
                     this.isCompressing = true;
+                    this.isAutoDate = false;
 
-                    // 1. 日付取得 (Exif)
-                    const self = this;
-                    EXIF.getData(file, function() {
-                        const dateTag = EXIF.getTag(this, "DateTimeOriginal");
-                        if (dateTag) self.targetDate = dateTag.split(' ')[0].replace(/:/g, '-');
-                    });
-
-                    // 2. 画像リサイズ & 圧縮
                     const reader = new FileReader();
                     reader.onload = (event) => {
                         const img = new Image();
@@ -153,7 +152,6 @@
                             const ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0, width, height);
                             
-                            // JPEG品質 0.6 (中品質) で圧縮
                             const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
                             this.imageData = compressedBase64;
                             this.previewUrl = compressedBase64;
@@ -162,21 +160,52 @@
                         img.src = event.target.result;
                     };
                     reader.readAsDataURL(file);
+
+                    const self = this;
+                    EXIF.getData(file, function() {
+                        const dateTag = EXIF.getTag(this, "DateTimeOriginal");
+                        if (dateTag) {
+                            self.targetDate = dateTag.split(' ')[0].replace(/:/g, '-');
+                            self.isAutoDate = true;
+                        }
+                    });
                 },
                 async fetchWeather() {
                     if (!this.targetDate) return;
                     this.loading = true;
+                    this.weatherResult = null;
+
+                    // 選択された都市名から、正しい緯度・経度を見つけ出す処理（エラーの原因をここで完全に修正！）
+                    const cityData = this.cityList.find(c => c.name === this.selectedCityName);
+                    if (!cityData) {
+                        alert("都市のデータが見つかりません");
+                        this.loading = false;
+                        return;
+                    }
+
                     try {
-                        const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${this.selectedCity.lat}&longitude=${this.selectedCity.lon}&start_date=${this.targetDate}&end_date=${this.targetDate}&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo`;
+                        const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${cityData.lat}&longitude=${cityData.lon}&start_date=${this.targetDate}&end_date=${this.targetDate}&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo`;
                         const res = await fetch(url);
                         const data = await res.json();
-                        this.weatherResult = { max: data.daily.temperature_2m_max[0], min: data.daily.temperature_2m_min[0] };
-                    } catch (e) { alert("Error"); } finally { this.loading = false; }
+                        
+                        if (data && data.daily && data.daily.temperature_2m_max) {
+                            this.weatherResult = { 
+                                max: data.daily.temperature_2m_max[0], 
+                                min: data.daily.temperature_2m_min[0] 
+                            };
+                        } else {
+                            alert("その日付の気温データが存在しないか、まだ更新されていません。");
+                        }
+                    } catch (e) { 
+                        alert("通信エラーが発生しました。"); 
+                    } finally { 
+                        this.loading = false; 
+                    }
                 },
                 async saveEntry() {
                     if (!this.imageData || !this.weatherResult) return;
                     await db.entries.add({
-                        imageData: this.imageData, date: this.targetDate, city: this.selectedCity.name,
+                        imageData: this.imageData, date: this.targetDate, city: this.selectedCityName,
                         maxTemp: this.weatherResult.max, minTemp: this.weatherResult.min,
                         memo: this.memo, timestamp: Date.now()
                     });
@@ -185,7 +214,7 @@
                 },
                 async loadHistory() { this.history = await db.entries.orderBy('date').reverse().toArray(); },
                 viewDetail(entry) { this.selectedEntry = entry; },
-                async deleteEntry(id) { if (confirm('消去？')) { await db.entries.delete(id); this.selectedEntry = null; this.loadHistory(); } }
+                async deleteEntry(id) { if (confirm('消去しますか？')) { await db.entries.delete(id); this.selectedEntry = null; this.loadHistory(); } }
             }
         }).mount('#app')
     </script>
