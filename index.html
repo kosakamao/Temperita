@@ -238,13 +238,22 @@
                     const reader = new FileReader();
                     reader.onload = async (event) => {
                         try {
-                            const entries = JSON.parse(event.target.result);
+                            // iPhoneのSafari対策：Base64形式で読み込まれた場合はテキストに変換する
+                            let rawResult = event.target.result;
+                            if (rawResult.startsWith('data:application/json;base64,')) {
+                                const base64Content = rawResult.split(',')[1];
+                                rawResult = decodeURIComponent(escape(atob(base64Content)));
+                            } else if (rawResult.includes(';base64,')) {
+                                const base64Content = rawResult.split(',')[1];
+                                rawResult = decodeURIComponent(escape(atob(base64Content)));
+                            }
+                            
+                            const entries = JSON.parse(rawResult);
                             if (!Array.isArray(entries)) throw new Error();
                             
                             if (confirm(`${entries.length}件のコーデデータを復元しますか？（現在のデータに追加されます）`)) {
                                 for (const entry of entries) {
-                                    // 重複を防ぐため一度idを消して新しく追加
-                                    delete entry.id;
+                                    delete entry.id; // 重複防止
                                     await db.entries.add(entry);
                                 }
                                 alert("データの復元が完了しました！ ✨");
@@ -254,7 +263,8 @@
                             alert("正しいバックアップファイルではありません。");
                         }
                     };
-                    reader.readAsDataURL(file);
+                    // 安全のため、まずはテキストとして読み込む命令に変えます
+                    reader.readAsText(file);
                 },
                 async loadHistory() { this.history = await db.entries.orderBy('date').reverse().toArray(); },
                 viewDetail(entry) { this.selectedEntry = entry; },
