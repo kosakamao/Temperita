@@ -4,13 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>気温でコーデ検索 -Temperita-</title>
+    
     <link rel="apple-touch-icon" href="https://via.placeholder.com/180x180/645CAA/ffffff?text=T">
     <meta name="apple-mobile-web-app-title" content="Temperita">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Parisienne&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    
     <style>
         [v-cloak] { display: none; }
         body { font-family: 'Noto Sans JP', sans-serif; background-color: #F8F6FA; }
@@ -22,9 +25,8 @@
         .aspect-square { aspect-ratio: 1 / 1; }
     </style>
 </head>
-<body class="text-gray-700 pb-20">
-
-    <div id="app" v-cloak class="max-w-md mx-auto min-h-screen bg-white shadow-xl relative">
+<body class="text-gray-700 pb-32"> <div id="app" v-cloak class="max-w-md mx-auto min-h-screen bg-white shadow-xl relative">
+        
         <header class="bg-main text-white p-4 sticky top-0 z-30 shadow-md flex justify-between items-center">
             <h1 class="text-3xl font-logo px-2">Temperita</h1>
             <button @click="showInput = !showInput" class="bg-white text-main px-4 py-2 rounded-full text-xs font-bold shadow-lg">
@@ -43,7 +45,7 @@
                     <input type="file" accept="image/*" @change="onFileChange" class="absolute inset-0 opacity-0 cursor-pointer">
                     <div v-if="!previewUrl" class="py-10 text-[#A084CA] text-xs font-bold">写真をアップロード</div>
                     <img v-if="previewUrl" :src="previewUrl" class="max-h-64 mx-auto rounded-xl">
-                    <p v-if="isCompressing" class="text-[10px] text-main mt-2 font-bold animate-pulse">画像圧縮中...</p>
+                    <p v-if="isCompressing" class="text-[10px] text-main mt-2 font-bold animate-pulse">✨ 画質をきれいに保ったまま軽量化中...</p>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -75,6 +77,26 @@
                     </div>
                 </div>
             </div>
+
+            <div v-if="filteredHistory.length === 0" class="text-center py-20 text-gray-400 text-sm">
+                No matching outfits 👗
+            </div>
+
+            <div class="p-6 bg-[#F8F6FA] border-t border-gray-100 mt-10 space-y-4 text-center">
+                <p class="text-xs font-bold text-gray-400">⚙️ バックアップ＆データ移行</p>
+                <div class="flex gap-3 justify-center">
+                    <button @click="exportData" class="bg-gray-200 hover:bg-gray-300 text-gray-600 text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm">
+                        📤 写真をバックアップ
+                    </button>
+                    <label class="bg-gray-200 hover:bg-gray-300 text-gray-600 text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm cursor-pointer">
+                        📥 写真を復元する
+                        <input type="file" accept=".json" @change="importData" class="hidden">
+                    </label>
+                </div>
+                <p class="text-[10px] text-gray-400 leading-relaxed">
+                    ※iPhoneの仕様でアプリを削除するとデータが消えるため、<br>定期的な書き出し（スマホへの保存）を推奨しています。
+                </p>
+            </div>
         </main>
 
         <div v-if="selectedEntry" class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" @click="selectedEntry = null">
@@ -104,18 +126,18 @@
             data() {
                 return {
                     showInput: false, loading: false, isCompressing: false,
-                    targetDate: '', selectedCityName: '東京', // 都市名で管理してエラーを徹底防止
+                    targetDate: '', selectedCityName: '東京',
                     weatherResult: null, previewUrl: null, memo: '', imageData: null, history: [], filterTemp: null,
-                    selectedEntry: null, isAutoDate: false,
+                    selectedEntry: null,
                     cityList: [
                         { name: '札幌', lat: 43.064, lon: 141.346 }, { name: '日高', lat: 42.337, lon: 142.368 },
                         { name: '仙台', lat: 38.268, lon: 140.869 }, { name: '千葉', lat: 35.607, lon: 140.106 },
                         { name: '埼玉', lat: 35.857, lon: 139.649 }, { name: '東京', lat: 35.689, lon: 139.692 }, 
-                        { name: '横浜', lat: 35.444, lon: 139.638 }, { name: '静岡', lat: 34.975, lon: 138.383 }, 
-                        { name: '名古屋', lat: 35.181, lon: 136.906 },
-                        { name: '京都', lat: 35.011, lon: 135.768 }, { name: '大阪', lat: 34.693, lon: 135.502 }, 
-                        { name: '奈良', lat: 34.685, lon: 135.832 }, { name: '広島', lat: 34.385, lon: 132.453 }, 
-                        { name: '福岡', lat: 33.590, lon: 130.401 }, { name: '那覇', lat: 26.212, lon: 127.681 }
+                        { name: '静岡', lat: 34.975, lon: 138.383 }, { name: '横浜', lat: 35.444, lon: 139.638 }, 
+                        { name: '名古屋', lat: 35.181, lon: 136.906 }, { name: '京都', lat: 35.011, lon: 135.768 }, 
+                        { name: '大阪', lat: 34.693, lon: 135.502 }, { name: '奈良', lat: 34.685, lon: 135.832 }, 
+                        { name: '広島', lat: 34.385, lon: 132.453 }, { name: '福岡', lat: 33.590, lon: 130.401 }, 
+                        { name: '那覇', lat: 26.212, lon: 127.681 }
                     ]
                 }
             },
@@ -131,7 +153,6 @@
                     const file = e.target.files[0];
                     if (!file) return;
                     this.isCompressing = true;
-                    this.isAutoDate = false;
 
                     const reader = new FileReader();
                     reader.onload = (event) => {
@@ -152,6 +173,7 @@
                             const ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0, width, height);
                             
+                            // JPEG品質 0.6 でしっかり軽量化
                             const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
                             this.imageData = compressedBase64;
                             this.previewUrl = compressedBase64;
@@ -164,43 +186,24 @@
                     const self = this;
                     EXIF.getData(file, function() {
                         const dateTag = EXIF.getTag(this, "DateTimeOriginal");
-                        if (dateTag) {
-                            self.targetDate = dateTag.split(' ')[0].replace(/:/g, '-');
-                            self.isAutoDate = true;
-                        }
+                        if (dateTag) self.targetDate = dateTag.split(' ')[0].replace(/:/g, '-');
                     });
                 },
                 async fetchWeather() {
                     if (!this.targetDate) return;
                     this.loading = true;
                     this.weatherResult = null;
-
-                    // 選択された都市名から、正しい緯度・経度を見つけ出す処理（エラーの原因をここで完全に修正！）
                     const cityData = this.cityList.find(c => c.name === this.selectedCityName);
-                    if (!cityData) {
-                        alert("都市のデータが見つかりません");
-                        this.loading = false;
-                        return;
-                    }
+                    if (!cityData) { this.loading = false; return; }
 
                     try {
                         const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${cityData.lat}&longitude=${cityData.lon}&start_date=${this.targetDate}&end_date=${this.targetDate}&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo`;
                         const res = await fetch(url);
                         const data = await res.json();
-                        
                         if (data && data.daily && data.daily.temperature_2m_max) {
-                            this.weatherResult = { 
-                                max: data.daily.temperature_2m_max[0], 
-                                min: data.daily.temperature_2m_min[0] 
-                            };
-                        } else {
-                            alert("その日付の気温データが存在しないか、まだ更新されていません。");
-                        }
-                    } catch (e) { 
-                        alert("通信エラーが発生しました。"); 
-                    } finally { 
-                        this.loading = false; 
-                    }
+                            this.weatherResult = { max: data.daily.temperature_2m_max[0], min: data.daily.temperature_2m_min[0] };
+                        } else { alert("データが見つかりません"); }
+                    } catch (e) { alert("通信エラー"); } finally { this.loading = false; }
                 },
                 async saveEntry() {
                     if (!this.imageData || !this.weatherResult) return;
@@ -211,6 +214,47 @@
                     });
                     this.previewUrl = null; this.weatherResult = null; this.memo = ''; this.imageData = null; this.showInput = false;
                     this.loadHistory();
+                },
+                // 【NEW】データをJSONファイルとしてダウンロードする機能
+                async exportData() {
+                    const allEntries = await db.entries.toArray();
+                    if (allEntries.length === 0) return alert("保存されたデータがありません。");
+                    
+                    const dataStr = JSON.stringify(allEntries);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `temperita_backup_${new Date().toISOString().slice(0,10)}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                },
+                // 【NEW】JSONファイルを読み込んでデータベースに一括復元する機能
+                importData(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        try {
+                            const entries = JSON.parse(event.target.result);
+                            if (!Array.isArray(entries)) throw new Error();
+                            
+                            if (confirm(`${entries.length}件のコーデデータを復元しますか？（現在のデータに追加されます）`)) {
+                                for (const entry of entries) {
+                                    // 重複を防ぐため一度idを消して新しく追加
+                                    delete entry.id;
+                                    await db.entries.add(entry);
+                                }
+                                alert("データの復元が完了しました！ ✨");
+                                this.loadHistory();
+                            }
+                        } catch (err) {
+                            alert("正しいバックアップファイルではありません。");
+                        }
+                    };
+                    reader.readAsDataURL(file);
                 },
                 async loadHistory() { this.history = await db.entries.orderBy('date').reverse().toArray(); },
                 viewDetail(entry) { this.selectedEntry = entry; },
