@@ -25,7 +25,9 @@
         .aspect-square { aspect-ratio: 1 / 1; }
     </style>
 </head>
-<body class="text-gray-700 pb-32"> <div id="app" v-cloak class="max-w-md mx-auto min-h-screen bg-white shadow-xl relative">
+<body class="text-gray-700 pb-20">
+
+    <div id="app" v-cloak class="max-w-md mx-auto min-h-screen bg-white shadow-xl relative">
         
         <header class="bg-main text-white p-4 sticky top-0 z-30 shadow-md flex justify-between items-center">
             <h1 class="text-3xl font-logo px-2">Temperita</h1>
@@ -35,9 +37,18 @@
         </header>
 
         <main>
-            <div class="p-4 border-b border-gray-100 bg-white text-center">
+            <div class="p-4 border-b border-gray-100 bg-white space-y-3">
                 <input type="number" step="0.1" v-model="filterTemp" placeholder="最高気温で検索 (例: 26.5)" 
                     class="bg-[#F8F6FA] p-3 rounded-2xl outline-none w-full text-sm font-bold text-center">
+                
+                <div class="flex justify-end items-center gap-2 px-1">
+                    <span class="text-[10px] text-gray-400 font-bold">並び替え：</span>
+                    <select v-model="sortOrder" class="bg-[#F8F6FA] text-xs font-bold p-1.5 px-3 rounded-xl outline-none border border-gray-100 text-gray-600">
+                        <option value="newest">日付が新しい順</option>
+                        <option value="tempDesc">🔥 気温が高い順</option>
+                        <option value="tempAsc">🧊 気温が低い順</option>
+                    </select>
+                </div>
             </div>
 
             <div v-if="showInput" class="p-5 bg-white border-b-2 border-accent/30 space-y-4">
@@ -65,7 +76,9 @@
                         <div class="text-center font-bold"><p class="text-[8px] text-gray-400">MIN</p><p class="text-blue-400">{{ weatherResult.min }}℃</p></div>
                     </div>
                     <textarea v-model="memo" placeholder="メモ..." class="w-full p-3 bg-[#F8F6FA] rounded-xl text-sm h-20 outline-none shadow-inner"></textarea>
-                    <button @click="saveEntry" class="w-full bg-main text-white py-4 rounded-xl font-bold shadow-lg">保存する</button>
+                    <button @click="saveEntry" class="w-full bg-main text-white py-4 rounded-xl font-bold shadow-lg tracking-widest">
+                        ✨ コーデを登録
+                    </button>
                 </div>
             </div>
 
@@ -80,22 +93,6 @@
 
             <div v-if="filteredHistory.length === 0" class="text-center py-20 text-gray-400 text-sm">
                 No matching outfits 👗
-            </div>
-
-            <div class="p-6 bg-[#F8F6FA] border-t border-gray-100 mt-10 space-y-4 text-center">
-                <p class="text-xs font-bold text-gray-400">⚙️ バックアップ＆データ移行</p>
-                <div class="flex gap-3 justify-center">
-                    <button @click="exportData" class="bg-gray-200 hover:bg-gray-300 text-gray-600 text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm">
-                        📤 写真をバックアップ
-                    </button>
-                    <label class="bg-gray-200 hover:bg-gray-300 text-gray-600 text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm cursor-pointer">
-                        📥 写真を復元する
-                        <input type="file" accept=".json" @change="importData" class="hidden">
-                    </label>
-                </div>
-                <p class="text-[10px] text-gray-400 leading-relaxed">
-                    ※iPhoneの仕様でアプリを削除するとデータが消えるため、<br>定期的な書き出し（スマホへの保存）を推奨しています。
-                </p>
             </div>
         </main>
 
@@ -129,22 +126,41 @@
                     targetDate: '', selectedCityName: '東京',
                     weatherResult: null, previewUrl: null, memo: '', imageData: null, history: [], filterTemp: null,
                     selectedEntry: null,
+                    sortOrder: 'newest', // デフォルトは日付順
                     cityList: [
                         { name: '札幌', lat: 43.064, lon: 141.346 }, { name: '日高', lat: 42.337, lon: 142.368 },
                         { name: '仙台', lat: 38.268, lon: 140.869 }, { name: '千葉', lat: 35.607, lon: 140.106 },
                         { name: '埼玉', lat: 35.857, lon: 139.649 }, { name: '東京', lat: 35.689, lon: 139.692 }, 
                         { name: '静岡', lat: 34.975, lon: 138.383 }, { name: '横浜', lat: 35.444, lon: 139.638 }, 
                         { name: '名古屋', lat: 35.181, lon: 136.906 }, { name: '京都', lat: 35.011, lon: 135.768 }, 
-                        { name: '大阪', lat: 34.693, lon: 135.502 }, { name: '奈良', lat: 34.685, lon: 135.832 }, 
-                        { name: '広島', lat: 34.385, lon: 132.453 }, { name: '福岡', lat: 33.590, lon: 130.401 }, 
-                        { name: '那覇', lat: 26.212, lon: 127.681 }
+                        { name: '大阪', lat: 34.693, lon: 135.502 }, { name: '神戸', lat: 34.690, lon: 135.195 }, // ← 神戸市を追加！
+                        { name: '奈良', lat: 34.685, lon: 135.832 }, { name: '広島', lat: 34.385, lon: 132.453 }, 
+                        { name: '福岡', lat: 33.590, lon: 130.401 }, { name: '那覇', lat: 26.212, lon: 127.681 }
                     ]
                 }
             },
             computed: {
                 filteredHistory() {
-                    if (!this.filterTemp) return this.history;
-                    return this.history.filter(e => Math.abs(e.maxTemp - Number(this.filterTemp)) <= 0.5);
+                    let result = [...this.history];
+
+                    // 【変更】気温での絞り込み幅を「±2.0度」に変更！
+                    if (this.filterTemp) {
+                        result = result.filter(e => Math.abs(e.maxTemp - Number(this.filterTemp)) <= 2.0);
+                    }
+
+                    // 【NEW】並び替えの処理
+                    if (this.sortOrder === 'tempDesc') {
+                        // 最高気温が高い順
+                        result.sort((a, b) => b.maxTemp - a.maxTemp);
+                    } else if (this.sortOrder === 'tempAsc') {
+                        // 最高気温が低い順
+                        result.sort((a, b) => a.maxTemp - b.maxTemp);
+                    } else {
+                        // 日付が新しい順 (Dexieロード時のデフォルト)
+                        result.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    }
+
+                    return result;
                 }
             },
             async mounted() { this.loadHistory(); },
@@ -173,7 +189,6 @@
                             const ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0, width, height);
                             
-                            // JPEG品質 0.6 でしっかり軽量化
                             const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
                             this.imageData = compressedBase64;
                             this.previewUrl = compressedBase64;
@@ -214,57 +229,6 @@
                     });
                     this.previewUrl = null; this.weatherResult = null; this.memo = ''; this.imageData = null; this.showInput = false;
                     this.loadHistory();
-                },
-                // 【NEW】データをJSONファイルとしてダウンロードする機能
-                async exportData() {
-                    const allEntries = await db.entries.toArray();
-                    if (allEntries.length === 0) return alert("保存されたデータがありません。");
-                    
-                    const dataStr = JSON.stringify(allEntries);
-                    const blob = new Blob([dataStr], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `temperita_backup_${new Date().toISOString().slice(0,10)}.json`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                },
-                // 【NEW】JSONファイルを読み込んでデータベースに一括復元する機能
-                importData(e) {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    
-                    const reader = new FileReader();
-                    reader.onload = async (event) => {
-                        try {
-                            // iPhoneのSafari対策：Base64形式で読み込まれた場合はテキストに変換する
-                            let rawResult = event.target.result;
-                            if (rawResult.startsWith('data:application/json;base64,')) {
-                                const base64Content = rawResult.split(',')[1];
-                                rawResult = decodeURIComponent(escape(atob(base64Content)));
-                            } else if (rawResult.includes(';base64,')) {
-                                const base64Content = rawResult.split(',')[1];
-                                rawResult = decodeURIComponent(escape(atob(base64Content)));
-                            }
-                            
-                            const entries = JSON.parse(rawResult);
-                            if (!Array.isArray(entries)) throw new Error();
-                            
-                            if (confirm(`${entries.length}件のコーデデータを復元しますか？（現在のデータに追加されます）`)) {
-                                for (const entry of entries) {
-                                    delete entry.id; // 重複防止
-                                    await db.entries.add(entry);
-                                }
-                                alert("データの復元が完了しました！ ✨");
-                                this.loadHistory();
-                            }
-                        } catch (err) {
-                            alert("正しいバックアップファイルではありません。");
-                        }
-                    };
-                    // 安全のため、まずはテキストとして読み込む命令に変えます
-                    reader.readAsText(file);
                 },
                 async loadHistory() { this.history = await db.entries.orderBy('date').reverse().toArray(); },
                 viewDetail(entry) { this.selectedEntry = entry; },
