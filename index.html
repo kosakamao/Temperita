@@ -37,11 +37,15 @@
         </header>
 
         <main>
-            <div class="p-4 border-b border-gray-100 bg-white space-y-3">
-                <input type="number" step="0.1" v-model="filterTemp" placeholder="最高気温で検索 (例: 26.5)" 
+            <div class="p-4 border-b border-gray-100 bg-white space-y-2">
+                <input type="number" step="0.1" v-model="filterTemp" placeholder="最高気温で検索 (例: 26)" 
                     class="bg-[#F8F6FA] p-3 rounded-2xl outline-none w-full text-sm font-bold text-center">
                 
-                <div class="flex justify-end items-center gap-2 px-1">
+                <p class="text-[10px] text-gray-400 text-center font-medium">
+                    {{ filterTemp ? `✨ ${(Number(filterTemp) - 2).toFixed(1)}℃ 〜 ${(Number(filterTemp) + 2).toFixed(1)}℃ のコーデを表示中` : '※数字を入れると、その気温の±2℃のコーデを表示します' }}
+                </p>
+                
+                <div class="flex justify-end items-center gap-2 pt-1 px-1">
                     <span class="text-[10px] text-gray-400 font-bold">並び替え：</span>
                     <select v-model="sortOrder" class="bg-[#F8F6FA] text-xs font-bold p-1.5 px-3 rounded-xl outline-none border border-gray-100 text-gray-600">
                         <option value="newest">日付が新しい順</option>
@@ -79,6 +83,16 @@
                     <button @click="saveEntry" class="w-full bg-main text-white py-4 rounded-xl font-bold shadow-lg tracking-widest">
                         ✨ コーデを登録
                     </button>
+                </div>
+
+                <div class="p-3 bg-[#F8F6FA] rounded-xl text-center space-y-1">
+                    <p class="text-[10px] font-bold text-gray-400">🔒 プライバシーと安心への取り組み</p>
+                    <p class="text-[9px] text-gray-400 leading-relaxed">
+                        写真はサーバーに一切アップロードされず、あなたの端末内だけに保存されます。他人にあなたのお部屋のクローゼットを見られることはありません。
+                    </p>
+                    <p class="text-[8px] text-red-300">
+                        ※ブラウザの「履歴やWebサイトデータを消去」を行うと記録も消えてしまうのでご注意ください。
+                    </p>
                 </div>
             </div>
 
@@ -126,14 +140,15 @@
                     targetDate: '', selectedCityName: '東京',
                     weatherResult: null, previewUrl: null, memo: '', imageData: null, history: [], filterTemp: null,
                     selectedEntry: null,
-                    sortOrder: 'newest', // デフォルトは日付順
+                    sortOrder: 'newest',
+                    weatherCache: {}, // 【NEW】APIの連打を防ぐ簡易キャッシュ倉庫
                     cityList: [
                         { name: '札幌', lat: 43.064, lon: 141.346 }, { name: '日高', lat: 42.337, lon: 142.368 },
                         { name: '仙台', lat: 38.268, lon: 140.869 }, { name: '千葉', lat: 35.607, lon: 140.106 },
                         { name: '埼玉', lat: 35.857, lon: 139.649 }, { name: '東京', lat: 35.689, lon: 139.692 }, 
-                        { name: '横浜', lat: 35.444, lon: 139.638 }, { name: '静岡', lat: 34.975, lon: 138.383 },
+                        { name: '静岡', lat: 34.975, lon: 138.383 }, { name: '横浜', lat: 35.444, lon: 139.638 }, 
                         { name: '名古屋', lat: 35.181, lon: 136.906 }, { name: '京都', lat: 35.011, lon: 135.768 }, 
-                        { name: '大阪', lat: 34.693, lon: 135.502 }, { name: '神戸', lat: 34.690, lon: 135.195 }, // ← 神戸市を追加！
+                        { name: '大阪', lat: 34.693, lon: 135.502 }, { name: '神戸', lat: 34.690, lon: 135.195 }, 
                         { name: '奈良', lat: 34.685, lon: 135.832 }, { name: '広島', lat: 34.385, lon: 132.453 }, 
                         { name: '福岡', lat: 33.590, lon: 130.401 }, { name: '那覇', lat: 26.212, lon: 127.681 }
                     ]
@@ -142,24 +157,16 @@
             computed: {
                 filteredHistory() {
                     let result = [...this.history];
-
-                    // 【変更】気温での絞り込み幅を「±2.0度」に変更！
                     if (this.filterTemp) {
                         result = result.filter(e => Math.abs(e.maxTemp - Number(this.filterTemp)) <= 2.0);
                     }
-
-                    // 【NEW】並び替えの処理
                     if (this.sortOrder === 'tempDesc') {
-                        // 最高気温が高い順
                         result.sort((a, b) => b.maxTemp - a.maxTemp);
                     } else if (this.sortOrder === 'tempAsc') {
-                        // 最高気温が低い順
                         result.sort((a, b) => a.maxTemp - b.maxTemp);
                     } else {
-                        // 日付が新しい順 (Dexieロード時のデフォルト)
                         result.sort((a, b) => new Date(b.date) - new Date(a.date));
                     }
-
                     return result;
                 }
             },
@@ -206,17 +213,28 @@
                 },
                 async fetchWeather() {
                     if (!this.targetDate) return;
+                    
+                    const cityData = this.cityList.find(c => c.name === this.selectedCityName);
+                    if (!cityData) return;
+
+                    // 【NEW】キャッシュチェック：すでに同じ日付・都市で取得したことがあれば、APIを叩かずに使い回す
+                    const cacheKey = `${this.targetDate}_${this.selectedCityName}`;
+                    if (this.weatherCache[cacheKey]) {
+                        this.weatherResult = this.weatherCache[cacheKey];
+                        return;
+                    }
+
                     this.loading = true;
                     this.weatherResult = null;
-                    const cityData = this.cityList.find(c => c.name === this.selectedCityName);
-                    if (!cityData) { this.loading = false; return; }
 
                     try {
                         const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${cityData.lat}&longitude=${cityData.lon}&start_date=${this.targetDate}&end_date=${this.targetDate}&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo`;
                         const res = await fetch(url);
                         const data = await res.json();
                         if (data && data.daily && data.daily.temperature_2m_max) {
-                            this.weatherResult = { max: data.daily.temperature_2m_max[0], min: data.daily.temperature_2m_min[0] };
+                            const result = { max: data.daily.temperature_2m_max[0], min: data.daily.temperature_2m_min[0] };
+                            this.weatherResult = result;
+                            this.weatherCache[cacheKey] = result; // キャッシュに保存
                         } else { alert("データが見つかりません"); }
                     } catch (e) { alert("通信エラー"); } finally { this.loading = false; }
                 },
