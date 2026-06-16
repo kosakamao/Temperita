@@ -59,23 +59,34 @@
     position:relative;
     display:grid;
     grid-template-columns:repeat(5, 1fr);
+    grid-auto-rows:1fr;
     gap:7px;
     aspect-ratio:1/1;
   }
   button.cell{
     position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    aspect-ratio:1/1;
+    min-width:0;
+    min-height:0;
     border:2px solid #f5bdd2;
     border-radius:16px;
     background:linear-gradient(180deg,#fff,#fff7fa);
     color:var(--ink);
     font-weight:700;
-    font-size:clamp(10px, 2.7vw, 15px);
+    font-size:clamp(10px, 2.45vw, 15px);
     line-height:1.25;
+    text-align:center;
     padding:6px;
     cursor:pointer;
     box-shadow:0 3px 0 #f3aac7;
     transition:.16s transform, .16s filter, .16s background;
-    word-break:keep-all;
+    white-space:normal;
+    word-break:normal;
+    overflow-wrap:anywhere;
     overflow:hidden;
   }
   button.cell:active{ transform:translateY(2px); box-shadow:0 1px 0 #f3aac7; }
@@ -214,11 +225,11 @@ const items = [
   "ゴシックロリィタ",
   "例の噴水で写真",
   "受注生産の服を買う",
-  "姫袖",
+  "ハンガーラック崩壊",
   "デザフェス参加",
   "ロリデ",
   "アクセサリー自作",
-  "クラロリ",
+  "クローゼット限界突破",
   "ブランド展示会参加",
   "ポトレ",
   "抽選販売の服を買う",
