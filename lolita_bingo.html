@@ -8,14 +8,13 @@
   @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Shippori+Mincho:wght@500;700&display=swap');
 
   :root{
-    /* エミキュ・テンプルを意識したクラシカルショコラ＆いちごミルクのパレット */
     --bg: #fcf6f8;
     --card: #ffffff;
-    --ink: #4a2e2b; /* 濃厚なショコラブラウン */
-    --pink: #e59bb1; /* 甘すぎない上品なローズピンク */
-    --pink2: #fae1e8; /* いちごミルク */
-    --rose: #b84a62; /* 深みのあるベリー・ルージュ */
-    --gold: #c29d53; /* クラシカルなアンティークゴールド */
+    --ink: #4a2e2b; 
+    --pink: #e59bb1; 
+    --pink2: #fae1e8; 
+    --rose: #b84a62; 
+    --gold: #c29d53; 
     --line: #d66882;
     --shadow: 0 12px 40px rgba(74, 46, 43, 0.12);
   }
@@ -24,10 +23,8 @@
     margin:0;
     min-height:100svh;
     color:var(--ink);
-    /* フォントを「しっぽり明朝」ベースのドーリーな雰囲気に */
     font-family: "Shippori Mincho", "YuMincho", "Hiragino Mincho ProN", serif;
     background:
-      /* ストライプ（縞々）の背景をCSSだけで表現してロリィタのテキスタイル風に */
       linear-gradient(90deg, rgba(250,225,232,0.3) 50%, transparent 50%),
       linear-gradient(135deg, #fffcfd, var(--bg));
     background-size: 24px 100%, 100% 100%;
@@ -63,7 +60,6 @@
     color: #6e5350;
     letter-spacing: 0.05em;
   }
-  /* メインパネルを額縁・アプケ調のデザインに */
   .panel{
     position:relative;
     background: var(--card);
@@ -73,7 +69,6 @@
     box-shadow:var(--shadow);
     overflow:hidden;
   }
-  /* 内側にゴールドの二重線を引いて高級感を演出 */
   .panel::before {
     content: "";
     position: absolute;
@@ -91,7 +86,6 @@
     aspect-ratio:1/1;
     z-index: 1;
   }
-  /* ボタンを丸みのあるスクエアから、クラシカルなクッキー・型抜き風に */
   button.cell{
     position:relative;
     display:flex;
@@ -101,7 +95,7 @@
     aspect-ratio:1/1;
     min-width:0;
     min-height:0;
-    border: 1px solid rgba(194,157,83,0.3); /* ゴールドの繊細な枠 */
+    border: 1px solid rgba(194,157,83,0.3); 
     border-radius:12px;
     background: #fff;
     color:var(--ink);
@@ -124,24 +118,22 @@
   }
   button.cell:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(74,46,43,0.1); }
   
-  /* チェックされたマスのデザイン（スタンプを押したような可愛さ） */
   button.cell.checked{
     background: linear-gradient(135deg, #fff5f7, var(--pink2));
     border-color: var(--pink);
     color: var(--rose);
   }
   button.cell.checked::after{
-    content:"❤"; /* ◯から、お洋服のモチーフに合うリボンハート風の刻印に */
+    content:"❤"; 
     position:absolute;
     inset:50% auto auto 50%;
     transform:translate(-50%,-50%) scale(1);
     font-size:clamp(40px, 10vw, 64px);
     line-height:1;
-    color:rgba(184,74,98,0.15); /* さりげなく背景に溶け込む透かし彫り風 */
+    color:rgba(184,74,98,0.15); 
     pointer-events:none;
     font-family: system-ui;
   }
-  /* FREEマスは特別なお菓子のようなデザイン */
   button.cell.free{
     background: linear-gradient(135deg, #fffcf3, #f5ecd2);
     border: 1px dashed var(--gold);
@@ -157,21 +149,20 @@
     color:var(--gold);
     margin-bottom: 2px;
   }
-  /* ビンゴ線のリボン化 */
+
+  /* 【修正箇所】ビンゴ線のベーススタイルを最適化 */
   .line{
     position:absolute;
-    left:0;
-    top:0;
-    width:100%;
     height:6px;
     border-radius:999px;
-    background: var(--rose); /* ルージュ色のサテンリボンをイメージ */
+    background: var(--rose); 
     box-shadow: 0 2px 6px rgba(184,74,98,0.4);
     pointer-events:none;
-    transform-origin:center;
+    /* 左端中央を回転の軸にすることで、JSでの角度計算と完全に一致させます */
+    transform-origin: left center;
     animation:lineIn .3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
   }
-  @keyframes lineIn{ from{opacity:0; transform:scaleX(0.5)} to{opacity:0.85; transform:scaleX(1)} }
+  @keyframes lineIn{ from{opacity:0; transform:scaleX(0)} to{opacity:0.85; transform:scaleX(1)} }
   
   .status{
     min-height:30px;
@@ -187,7 +178,6 @@
     justify-content:center;
     margin-top:16px;
   }
-  /* ボタンもトランクの金具のようなクラシカルなデザインに */
   .reset{
     border: 1px solid var(--gold);
     border-radius: 6px;
@@ -208,13 +198,12 @@
     border-color: var(--ink);
   }
   
-  /* パーフェクト画面のドーリーなポップアップ */
   .perfect{
     position:fixed;
     inset:0;
     display:grid;
     place-items:center;
-    background:rgba(74, 46, 43, 0.4); /* 背景をダークブラウンの透かしにして高級感を */
+    background:rgba(74, 46, 43, 0.4); 
     backdrop-filter:blur(5px);
     opacity:0;
     pointer-events:none;
@@ -289,7 +278,6 @@
 </div>
 
 <script>
-// （※JavaScriptのロジックは元のままで完全に動作するようになっています）
 const items = [
   "ロマアラ参加",
   "お洋服自作",
@@ -357,24 +345,36 @@ function completedLines(){
   return lines.filter(line => line.every(i => checked[i]));
 }
 
+/* 【修正箇所】縦・横・斜めのリボンが正しく重なるように位置計算を修正 */
 function drawLines(){
   document.querySelectorAll(".line").forEach(el => el.remove());
   const cellSize = bingo.clientWidth / 5;
+  
   completedLines().forEach(line => {
     const el = document.createElement("div");
     el.className = "line";
+    
     const first = line[0], last = line[4];
     const r1 = Math.floor(first / 5), c1 = first % 5;
     const r2 = Math.floor(last / 5), c2 = last % 5;
-    const x1 = (c1 + .5) * cellSize, y1 = (r1 + .5) * cellSize;
-    const x2 = (c2 + .5) * cellSize, y2 = (r2 + .5) * cellSize;
-    const dx = x2 - x1, dy = y2 - y1;
+    
+    // マスの中心座標を計算
+    const x1 = (c1 + .5) * cellSize;
+    const y1 = (r1 + .5) * cellSize;
+    const x2 = (c2 + .5) * cellSize;
+    const y2 = (r2 + .5) * cellSize;
+    
+    const dx = x2 - x1;
+    const dy = y2 - y1;
     const len = Math.hypot(dx, dy);
     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    
+    // 線の幅、始点(x1, y1)を設定し、そこから計算した角度分回転させる
     el.style.width = len + "px";
-    el.style.left = (x1 + dx / 2 - len / 2) + "px";
-    el.style.top = (y1 + dy / 2 - 3) + "px";
+    el.style.left = x1 + "px";
+    el.style.top = (y1 - 3) + "px"; // 線の高さ(6px)の半分だけ上にずらして中央に合わせる
     el.style.transform = `rotate(${angle}deg)`;
+    
     bingo.appendChild(el);
   });
 }
