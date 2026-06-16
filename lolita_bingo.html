@@ -45,7 +45,7 @@
     font-weight: 700;
   }
   h1::after {
-    content: "✦ Bingo de l'経験値 ✦";
+    content: "✦ Bingo de l'expérience ✦";
     display: block;
     font-size: 11px;
     font-family: "Cinzel", serif;
@@ -121,7 +121,6 @@
   }
   button.cell:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(74,46,43,0.1); }
   
-  /* エフェクトを廃止し、シンプルに色が上品なピンクに変わるだけの指定に戻しました */
   button.cell.checked{
     background: linear-gradient(135deg, #fff5f7, var(--pink2));
     border-color: var(--pink);
@@ -179,7 +178,7 @@
     font-weight: 700;
     font-size: 13px;
     letter-spacing: 0.1em;
-    box-shadow: 0 4px 10px rgba(74,46,43,0.08);
+    box-shadow: 0 4px 10px rgba(74, 46, 43, 0.08);
     cursor:pointer;
     transition: .2s;
   }
@@ -371,8 +370,11 @@ document.getElementById("reset").addEventListener("click", () => {
   perfect.classList.remove("show");
   render();
 });
+
+/* 【復活・修正】消えてしまっていた「閉じる」ボタンと背景タップの動作を完璧に復元しました */
 document.getElementById("closePerfect").addEventListener("click", () => perfect.classList.remove("show"));
 perfect.addEventListener("click", e => { if(e.target === perfect) perfect.classList.remove("show"); });
+
 render();
 </script>
 </body>
