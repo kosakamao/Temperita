@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ロリィタちゃん経験値ビンゴ</title>
+<style>
+  :root{
+    --bg:#fff5f9;
+    --card:#fff;
+    --ink:#5a3b4a;
+    --pink:#f59aba;
+    --pink2:#ffd9e6;
+    --rose:#d95f91;
+    --gold:#d6a84f;
+    --line:#e85f9c;
+    --shadow:0 10px 30px rgba(194,83,132,.18);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    min-height:100svh;
+    color:var(--ink);
+    font-family: "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 15% 10%, #fff 0 9%, transparent 10%),
+      radial-gradient(circle at 85% 18%, #ffe8f0 0 8%, transparent 9%),
+      linear-gradient(135deg, #fff8fb, var(--bg));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+  }
+  .app{
+    width:min(94vw, 620px);
+    text-align:center;
+  }
+  h1{
+    margin:0 0 8px;
+    font-size:clamp(26px, 6vw, 42px);
+    letter-spacing:.05em;
+    color:var(--rose);
+    text-shadow:2px 2px 0 #fff;
+  }
+  .lead{
+    margin:0 0 14px;
+    font-size:14px;
+  }
+  .panel{
+    position:relative;
+    background:rgba(255,255,255,.72);
+    border:2px solid #fff;
+    border-radius:28px;
+    padding:14px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .bingo{
+    position:relative;
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:7px;
+    aspect-ratio:1/1;
+  }
+  button.cell{
+    position:relative;
+    border:2px solid #f5bdd2;
+    border-radius:16px;
+    background:linear-gradient(180deg,#fff,#fff7fa);
+    color:var(--ink);
+    font-weight:700;
+    font-size:clamp(10px, 2.7vw, 15px);
+    line-height:1.25;
+    padding:6px;
+    cursor:pointer;
+    box-shadow:0 3px 0 #f3aac7;
+    transition:.16s transform, .16s filter, .16s background;
+    word-break:keep-all;
+    overflow:hidden;
+  }
+  button.cell:active{ transform:translateY(2px); box-shadow:0 1px 0 #f3aac7; }
+  button.cell.checked{
+    background:linear-gradient(180deg,#ffe1ec,#ffc4da);
+    border-color:var(--pink);
+  }
+  button.cell.checked::after{
+    content:"○";
+    position:absolute;
+    inset:50% auto auto 50%;
+    transform:translate(-50%,-50%) rotate(-8deg);
+    font-family:Georgia, serif;
+    font-size:clamp(48px, 12vw, 80px);
+    line-height:1;
+    color:rgba(216,54,126,.62);
+    pointer-events:none;
+  }
+  button.cell.free{
+    background:linear-gradient(180deg,#fff2c2,#ffd977);
+    border-color:#e9b94e;
+    color:#7a5420;
+  }
+  button.cell.free::before{
+    content:"❤";
+    display:block;
+    font-size:20px;
+    color:#d95f91;
+  }
+  .line{
+    position:absolute;
+    left:0;
+    top:0;
+    width:100%;
+    height:8px;
+    border-radius:999px;
+    background:linear-gradient(90deg, transparent, var(--line), var(--gold), var(--line), transparent);
+    box-shadow:0 0 15px rgba(232,95,156,.55);
+    pointer-events:none;
+    transform-origin:center;
+    animation:lineIn .28s ease-out both;
+  }
+  @keyframes lineIn{ from{opacity:0; scale:.75 1} to{opacity:1; scale:1 1} }
+  .status{
+    min-height:36px;
+    margin-top:12px;
+    font-weight:800;
+    color:var(--rose);
+  }
+  .controls{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    margin-top:10px;
+  }
+  .reset{
+    border:0;
+    border-radius:999px;
+    padding:10px 18px;
+    background:#fff;
+    color:var(--rose);
+    font-weight:800;
+    box-shadow:0 4px 14px rgba(194,83,132,.16);
+    cursor:pointer;
+  }
+  .perfect{
+    position:fixed;
+    inset:0;
+    display:grid;
+    place-items:center;
+    background:rgba(255,245,249,.68);
+    backdrop-filter:blur(4px);
+    opacity:0;
+    pointer-events:none;
+    transition:.25s;
+    z-index:10;
+  }
+  .perfect.show{opacity:1; pointer-events:auto}
+  .perfect-card{
+    background:#fff;
+    border:4px double #f59aba;
+    border-radius:30px;
+    padding:30px 26px;
+    width:min(88vw, 420px);
+    box-shadow:var(--shadow);
+    animation:pop .45s cubic-bezier(.2,1.4,.3,1) both;
+  }
+  .perfect h2{
+    margin:0 0 8px;
+    font-size:42px;
+    color:var(--rose);
+  }
+  .perfect p{margin:0 0 18px; font-weight:700}
+  @keyframes pop{from{transform:scale(.7) rotate(-4deg); opacity:0}to{transform:scale(1) rotate(0); opacity:1}}
+  .confetti{
+    position:fixed;
+    top:-20px;
+    width:10px;
+    height:16px;
+    border-radius:3px;
+    animation:fall 1.8s linear forwards;
+    z-index:11;
+  }
+  @keyframes fall{
+    to{ transform:translateY(110svh) rotate(720deg); opacity:.9; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <h1>ロリィタちゃん<br>経験値ビンゴ</h1>
+  <p class="lead">経験済みのマスをタップしてね。真ん中はFREE❤</p>
+  <section class="panel">
+    <div id="bingo" class="bingo" aria-label="ロリィタちゃん経験値ビンゴ"></div>
+    <div id="status" class="status">めざせビンゴ。経験済みのマスを開けてね。</div>
+  </section>
+  <div class="controls">
+    <button class="reset" type="button" id="reset">リセット</button>
+  </div>
+</main>
+
+<div id="perfect" class="perfect" role="dialog" aria-modal="true">
+  <div class="perfect-card">
+    <h2>Perfect!</h2>
+    <p>全マス制覇。すてきな経験がいっぱいです。</p>
+    <button class="reset" type="button" id="closePerfect">閉じる</button>
+  </div>
+</div>
+
+<script>
+const items = [
+  "ロマアラ参加",
+  "お洋服自作",
+  "お茶会参加",
+  "古着屋で運命の出会い",
+  "ゴシックロリィタ",
+  "例の噴水で写真",
+  "受注生産の服を買う",
+  "姫袖",
+  "デザフェス参加",
+  "ロリデ",
+  "アクセサリー自作",
+  "クラロリ",
+  "ブランド展示会参加",
+  "ポトレ",
+  "抽選販売の服を買う",
+  "バッスルコーデ",
+  "GLM参加",
+  "ロリィタ旅行",
+  "お茶会主催",
+  "甘ロリ",
+  "撮影会参加",
+  "ボンネット",
+  "ロリィタモデルさんに会う",
+  "懐古ロリィタ"
+];
+
+const bingo = document.getElementById("bingo");
+const status = document.getElementById("status");
+const perfect = document.getElementById("perfect");
+let checked = Array(25).fill(false);
+checked[12] = true;
+
+const lines = [
+  [0,1,2,3,4], [5,6,7,8,9], [10,11,12,13,14], [15,16,17,18,19], [20,21,22,23,24],
+  [0,5,10,15,20], [1,6,11,16,21], [2,7,12,17,22], [3,8,13,18,23], [4,9,14,19,24],
+  [0,6,12,18,24], [4,8,12,16,20]
+];
+
+function itemText(index){
+  if(index === 12) return "FREE";
+  return items[index < 12 ? index : index - 1];
+}
+
+function render(){
+  bingo.innerHTML = "";
+  checked.forEach((isChecked, i) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "cell" + (isChecked ? " checked" : "") + (i === 12 ? " free" : "");
+    btn.innerHTML = itemText(i);
+    btn.setAttribute("aria-pressed", isChecked);
+    btn.addEventListener("click", () => {
+      if(i === 12) return;
+      checked[i] = !checked[i];
+      render();
+    });
+    bingo.appendChild(btn);
+  });
+  drawLines();
+  updateStatus();
+}
+
+function completedLines(){
+  return lines.filter(line => line.every(i => checked[i]));
+}
+
+function drawLines(){
+  document.querySelectorAll(".line").forEach(el => el.remove());
+  const cellSize = bingo.clientWidth / 5;
+  completedLines().forEach(line => {
+    const el = document.createElement("div");
+    el.className = "line";
+    const first = line[0], last = line[4];
+    const r1 = Math.floor(first / 5), c1 = first % 5;
+    const r2 = Math.floor(last / 5), c2 = last % 5;
+    const x1 = (c1 + .5) * cellSize, y1 = (r1 + .5) * cellSize;
+    const x2 = (c2 + .5) * cellSize, y2 = (r2 + .5) * cellSize;
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.hypot(dx, dy);
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    el.style.width = len + "px";
+    el.style.left = (x1 + dx / 2 - len / 2) + "px";
+    el.style.top = (y1 + dy / 2 - 4) + "px";
+    el.style.transform = `rotate(${angle}deg)`;
+    bingo.appendChild(el);
+  });
+}
+
+function updateStatus(){
+  const count = checked.filter(Boolean).length;
+  const bingoCount = completedLines().length;
+  if(count === 25){
+    status.textContent = "全マス制覇！Perfect！";
+    showPerfect();
+  }else if(bingoCount > 0){
+    status.textContent = `${bingoCount}ビンゴ達成！すばらしいです。`; 
+  }else{
+    status.textContent = `${count}/25マス開いています。`;
+  }
+}
+
+let perfectShown = false;
+function showPerfect(){
+  if(perfectShown) return;
+  perfectShown = true;
+  perfect.classList.add("show");
+  for(let i=0; i<80; i++){
+    const c = document.createElement("div");
+    c.className = "confetti";
+    c.style.left = Math.random() * 100 + "vw";
+    c.style.animationDelay = Math.random() * .7 + "s";
+    c.style.background = ["#f59aba", "#ffd977", "#d95f91", "#b7e4d8", "#c9b6ff"][Math.floor(Math.random()*5)];
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 2600);
+  }
+}
+
+document.getElementById("reset").addEventListener("click", () => {
+  checked = Array(25).fill(false);
+  checked[12] = true;
+  perfectShown = false;
+  perfect.classList.remove("show");
+  render();
+});
+document.getElementById("closePerfect").addEventListener("click", () => perfect.classList.remove("show"));
+perfect.addEventListener("click", e => { if(e.target === perfect) perfect.classList.remove("show"); });
+window.addEventListener("resize", drawLines);
+render();
+</script>
+</body>
+</html>
